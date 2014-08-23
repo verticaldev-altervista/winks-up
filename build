@@ -1,0 +1,2 @@
+valac --pkg gtk+-3.0 --pkg webkitgtk-3.0 --thread --output w-up winks-up.vala 2>errors.txt
+#valac --pkg gtk+-2.0 --pkg webkit-1.0 --thread --enable-deprecated --disable-warnings winks.vala
