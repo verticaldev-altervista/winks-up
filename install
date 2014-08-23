@@ -1,0 +1,3 @@
+sudo -s
+cp w-up /usr/local/bin
+cp w-up.desktop /usr/share/applications

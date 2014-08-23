@@ -1,2 +1,10 @@
-valac --pkg gtk+-2.0 --pkg webkit-1.0 --thread --output w-up winks-up.vala
-#valac --pkg gtk+-2.0 --pkg webkit-1.0 --thread --enable-deprecated --disable-warnings winks.vala
+[Desktop Entry]
+Encoding=UTF-8
+Type=Application
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml_xml;image/webp;x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/ftp;
+Name=winks-up
+Name[it_IT]=wup
+Icon=/home/vroby/.config/winks-up/winks.png
+Exec=w-up
+Comment[it_IT]=
