@@ -15,6 +15,7 @@ using Soup;
 
 public class winks: Window {
 	// constants
+	private const bool DEBUG = false;
 	private const string TITLE = "winks-up";
 	private const string HOME_URL = "http://www.google.com/";
 	private const string DEFAULT_PROTOCOL = "http";
@@ -45,7 +46,7 @@ public class winks: Window {
 		set_default_size (640,480);
 		this.set_decorated(false);
 		this.maximize();
-		this.web_view.full_content_zoom=true;
+		//this.web_view.full_content_zoom=true;
 
 
 		// Setup required Regex objects
@@ -68,13 +69,13 @@ public class winks: Window {
 					web_icon.copy (icon_file, FileCopyFlags.NONE);
 				} 
 				catch (Error e) {
-					stderr.printf ("Could not create config dir: %s\n", e.message);
+					if(DEBUG)stderr.printf ("Could not create config dir: %s\n", e.message);
 				}
 			}
 			this.icon = new Gdk.Pixbuf.from_file (icon_file.get_path ());
 		} 
 		catch (Error e) {
-			stderr.printf ("Could not load application icon: %s\n", e.message);
+			if(DEBUG)stderr.printf ("Could not load application icon: %s\n", e.message);
 		}
 
 		// Load/Create storage for cookies
@@ -84,7 +85,7 @@ public class winks: Window {
 				cookie_file.create (FileCreateFlags.NONE);
 			} 
 			catch (Error e) {
-				stderr.printf ("Could not create cookie jar: %s\n", e.message);
+				if(DEBUG)stderr.printf ("Could not create cookie jar: %s\n", e.message);
 			}
 		}
 		this.http_cookies = new CookieJarText (cookie_file.get_path (), false);
@@ -100,7 +101,7 @@ public class winks: Window {
 				
 			} 
 			catch (Error e) {
-				stderr.printf ("Could not create cookie jar: %s\n", e.message);
+				if(DEBUG)stderr.printf ("Could not create cookie jar: %s\n", e.message);
 			}
 		}
 		
@@ -155,6 +156,7 @@ public class winks: Window {
 		this.web_settings.user_agent = (this.web_settings.user_agent+" "+VERSION_STRING.replace(" ", "/"));
 		this.web_view = new WebView ();
 		this.web_view.set_settings (this.web_settings);
+		
 		this.scrolled_window = new ScrolledWindow (null, null);
 		this.scrolled_window.set_policy (PolicyType.AUTOMATIC, PolicyType.AUTOMATIC);
 		this.scrolled_window.add (this.web_view);
@@ -190,14 +192,14 @@ public class winks: Window {
 		});
 
 		this.web_view.mime_type_policy_decision_requested.connect ((frame, request, mime, decision) =>{
-			//print("Mime:%s\n",mime); 
+			if(DEBUG)print("Mime:%s\n",mime); 
 			if (mime!="text/html"){
 				try{
-					print( "Download:%s\n",request.get_uri ());
+					if(DEBUG)print( "Download:%s\n",request.get_uri ());
 					GLib.Process.spawn_command_line_async (Environment.get_home_dir ()+"/.config/winks-up/dl.sh "+request.get_uri ());
 				}
 				catch (Error e) {
-					stderr.printf ("Error to run download script: %s\n", e.message);
+					if(DEBUG)stderr.printf ("Error to run download script: %s\n", e.message);
 				}
 				return false;
 			}
@@ -209,11 +211,11 @@ public class winks: Window {
 				// Find out if we have a cookie for this request
 				string found_cookie = this.http_cookies.get_cookies(request.message.get_uri(), true);
 				if (found_cookie != null) {
-					//print ("Found Cookie: %s\n", found_cookie);
+					if(DEBUG)print ("Found Cookie: %s\n", found_cookie);
 					request.message.request_headers.append("Cookie", found_cookie);
 				}
 				else {
-					//print ("No Cookie for: %s\n", request.get_uri ());
+					if(DEBUG)print ("No Cookie for: %s\n", request.get_uri ());
 				}
 				// return true
 				decision.use ();
@@ -264,11 +266,11 @@ public class winks: Window {
 		// Find out if we have a cookie for this request
 		string found_cookie = this.http_cookies.get_cookies(message.get_uri(), true);
 		if (found_cookie != null) {
-			//print ("Found Cookie: %s\n", found_cookie);
+			if(DEBUG)print ("Found Cookie: %s\n", found_cookie);
 			message.request_headers.append("Cookie", found_cookie);
 		}
 		else {
-			//print ("No Cookie for: %s\n", url);
+			if(DEBUG)print ("No Cookie for: %s\n", url);
 		}
 		this.my_session.send_message (message);
 
@@ -283,7 +285,7 @@ public class winks: Window {
 		var alias=url.split(" ");
 		if (alias[0]=="alias"){
 			try{
-				//print ("found alias %s - %s\n",alias[1],alias[2]);
+				if(DEBUG)print ("found alias %s - %s\n",alias[1],alias[2]);
 				var alias_file=File.new_for_path (Environment.get_home_dir ()+"/.config/winks-up/alias");
 				OutputStream ostream=alias_file.append_to(FileCreateFlags.NONE);
 				DataOutputStream dos = new DataOutputStream (ostream);
@@ -292,7 +294,7 @@ public class winks: Window {
 				this.url_bar.text=url;
 			 } 
 			 catch (Error e) {
-				stderr.printf ("Could not create alias file: %s\n", e.message);
+				if(DEBUG)stderr.printf ("Could not create alias file: %s\n", e.message);
 			}
 		}
 		//check alias
@@ -324,13 +326,13 @@ public class winks: Window {
 			while ((line = dis.read_line ()) != null) {
 				var alias=line.split("=");
 				if (newurl==alias[0]){
-					print ("request %s:alias %s - url %s\n",url,alias[0],alias[1]);
+					if(DEBUG)print ("request %s:alias %s - url %s\n",url,alias[0],alias[1]);
 					newurl=alias[1];
 				}
 			}
 		} 
 		catch (Error e) {
-			stdout.printf ("Error: %s\n", e.message);
+			if(DEBUG)stdout.printf ("Error: %s\n", e.message);
 		}
 		return newurl;
 	}
