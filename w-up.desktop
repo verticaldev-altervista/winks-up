@@ -5,6 +5,6 @@ Categories=Network;WebBrowser;
 MimeType=text/html;text/xml;application/xhtml_xml;image/webp;x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/ftp;
 Name=winks-up
 Name[it_IT]=wup
-Icon=/home/vroby/.config/winks-up/winks.png
+Icon=/home/vroby/.config/winks-up/w-up.png
 Exec=w-up
 Comment[it_IT]=

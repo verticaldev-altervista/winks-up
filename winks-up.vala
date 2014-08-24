@@ -19,7 +19,7 @@ public class winks: Window {
 	private const string TITLE = "winks-up";
 	private const string HOME_URL = "http://www.google.com/";
 	private const string DEFAULT_PROTOCOL = "http";
-	private const string VERSION_STRING = "Winks-up 0.01";
+	private const string VERSION_STRING = "Winks-Up 0.02";
 
 	// regex required
 	private Regex protocol_regex;
@@ -60,12 +60,12 @@ public class winks: Window {
 
 		// Load icon for Application
 		try {
-			var icon_file = File.new_for_path (Environment.get_home_dir ()+"/.config/winks-up/winks.png");
-			var config_dir = File.new_for_path (Environment.get_home_dir ()+"/.config/winks-up");
+			var icon_file = File.new_for_path (Environment.get_home_dir ()+"/.config/w-up/w-up.png");
+			var config_dir = File.new_for_path (Environment.get_home_dir ()+"/.config/w-up");
 			if (!config_dir.query_exists ()) {
 				try{
 					config_dir.make_directory_with_parents(null);
-					var web_icon = File.new_for_uri ("https://dl.dropboxusercontent.com/u/6053180/w-up/wup.png");
+					var web_icon = File.new_for_uri ("https://dl.dropboxusercontent.com/u/6053180/w-up/w-up.png");
 					web_icon.copy (icon_file, FileCopyFlags.NONE);
 				} 
 				catch (Error e) {
@@ -79,7 +79,7 @@ public class winks: Window {
 		}
 
 		// Load/Create storage for cookies
-		var cookie_file = File.new_for_path (Environment.get_home_dir ()+"/.config/winks-up/cookies.txt");
+		var cookie_file = File.new_for_path (Environment.get_home_dir ()+"/.config/w-up/cookies.txt");
 		if (!cookie_file.query_exists ()) {
 			try {
 				cookie_file.create (FileCreateFlags.NONE);
@@ -91,13 +91,13 @@ public class winks: Window {
 		this.http_cookies = new CookieJarText (cookie_file.get_path (), false);
 		
 		// create download script
-		var dl_file=File.new_for_path (Environment.get_home_dir ()+"/.config/winks-up/dl.sh");
+		var dl_file=File.new_for_path (Environment.get_home_dir ()+"/.config/w-up/dl.sh");
 		if (!dl_file.query_exists ()) {
 			try {
 				FileOutputStream os=dl_file.create (FileCreateFlags.NONE);
 				DataOutputStream dos = new DataOutputStream (os);
 				dos.put_string("#!/bin/bash \n wget $1 |zenity --progress   --text=\"download $1\" --pulsate --auto-kill\n"); 
-				GLib.Process.spawn_command_line_async ("chmod 0777 "+Environment.get_home_dir ()+"/.config/winks-up/dl.sh");
+				GLib.Process.spawn_command_line_async ("chmod 0777 "+Environment.get_home_dir ()+"/.config/w-up/dl.sh");
 				
 			} 
 			catch (Error e) {
@@ -153,6 +153,7 @@ public class winks: Window {
    		
 		this.web_settings = new WebSettings ();
 		this.web_settings.enable_page_cache = true;
+		this.web_settings.enable_plugins=true;
 		this.web_settings.user_agent = (this.web_settings.user_agent+" "+VERSION_STRING.replace(" ", "/"));
 		this.web_view = new WebView ();
 		this.web_view.set_settings (this.web_settings);
@@ -196,7 +197,7 @@ public class winks: Window {
 			if (mime!="text/html"){
 				try{
 					if(DEBUG)print( "Download:%s\n",request.get_uri ());
-					GLib.Process.spawn_command_line_async (Environment.get_home_dir ()+"/.config/winks-up/dl.sh "+request.get_uri ());
+					GLib.Process.spawn_command_line_async (Environment.get_home_dir ()+"/.config/w-up/dl.sh "+request.get_uri ());
 				}
 				catch (Error e) {
 					if(DEBUG)stderr.printf ("Error to run download script: %s\n", e.message);
@@ -286,7 +287,7 @@ public class winks: Window {
 		if (alias[0]=="alias"){
 			try{
 				if(DEBUG)print ("found alias %s - %s\n",alias[1],alias[2]);
-				var alias_file=File.new_for_path (Environment.get_home_dir ()+"/.config/winks-up/alias");
+				var alias_file=File.new_for_path (Environment.get_home_dir ()+"/.config/w-up/alias");
 				OutputStream ostream=alias_file.append_to(FileCreateFlags.NONE);
 				DataOutputStream dos = new DataOutputStream (ostream);
 				dos.put_string("%s=%s\n".printf (alias[1],alias[2])); 
@@ -317,7 +318,7 @@ public class winks: Window {
 	//alias 
 	private  string chk_alias(string url){
 		string newurl=url;
-		File file = File.new_for_path (Environment.get_home_dir ()+"/.config/winks-up/alias");
+		File file = File.new_for_path (Environment.get_home_dir ()+"/.config/w-up/alias");
 		try {
 			FileInputStream @is = file.read ();
 			DataInputStream dis = new DataInputStream (@is);
