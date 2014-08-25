@@ -153,7 +153,7 @@ public class winks: Window {
    		
 		this.web_settings = new WebSettings ();
 		this.web_settings.enable_page_cache = true;
-		this.web_settings.enable_plugins=true;
+		//this.web_settings.enable_plugins=true;
 		this.web_settings.user_agent = (this.web_settings.user_agent+" "+VERSION_STRING.replace(" ", "/"));
 		this.web_view = new WebView ();
 		this.web_view.set_settings (this.web_settings);
