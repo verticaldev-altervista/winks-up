@@ -1,5 +1,7 @@
 /*
-* winks-u.vala - Lightweight enanched Browser
+* winks-up.vala gtk3 - Lightweight enanched Browser
+* 
+* by vroby <vroby.mai@gmail.com>
 * 
 * based on winks 
 *
@@ -69,13 +71,13 @@ public class winks: Window {
 					web_icon.copy (icon_file, FileCopyFlags.NONE);
 				} 
 				catch (Error e) {
-					if(DEBUG)stderr.printf ("Could not create config dir: %s\n", e.message);
+					stderr.printf ("Could not create config dir: %s\n", e.message);
 				}
 			}
 			this.icon = new Gdk.Pixbuf.from_file (icon_file.get_path ());
 		} 
 		catch (Error e) {
-			if(DEBUG)stderr.printf ("Could not load application icon: %s\n", e.message);
+			stderr.printf ("Could not load application icon: %s\n", e.message);
 		}
 
 		// Load/Create storage for cookies
@@ -90,22 +92,6 @@ public class winks: Window {
 		}
 		this.http_cookies = new CookieJarText (cookie_file.get_path (), false);
 		
-		// create download script
-		var dl_file=File.new_for_path (Environment.get_home_dir ()+"/.config/w-up/dl.sh");
-		if (!dl_file.query_exists ()) {
-			try {
-				FileOutputStream os=dl_file.create (FileCreateFlags.NONE);
-				DataOutputStream dos = new DataOutputStream (os);
-				dos.put_string("#!/bin/bash \n wget $1 |zenity --progress   --text=\"download $1\" --pulsate --auto-kill\n"); 
-				GLib.Process.spawn_command_line_async ("chmod 0777 "+Environment.get_home_dir ()+"/.config/w-up/dl.sh");
-				
-			} 
-			catch (Error e) {
-				if(DEBUG)stderr.printf ("Could not create cookie jar: %s\n", e.message);
-			}
-		}
-		
-
 		create_widgets ();
 		connect_signals ();
 
@@ -197,7 +183,7 @@ public class winks: Window {
 			if (mime!="text/html"){
 				try{
 					if(DEBUG)print( "Download:%s\n",request.get_uri ());
-					GLib.Process.spawn_command_line_async (Environment.get_home_dir ()+"/.config/w-up/dl.sh "+request.get_uri ());
+					GLib.Process.spawn_command_line_async ("uget-gtk "+request.get_uri ());
 				}
 				catch (Error e) {
 					if(DEBUG)stderr.printf ("Error to run download script: %s\n", e.message);
@@ -283,6 +269,10 @@ public class winks: Window {
 	// deal with someone activating the url/command bar
 	private void on_activate () {
 		var url = this.url_bar.text;
+		if (url =="alias"){
+			GLib.Process.spawn_command_line_async ("gedit "+Environment.get_home_dir ()+"/.config/w-up/alias");
+			return;
+		}
 		var alias=url.split(" ");
 		if (alias[0]=="alias"){
 			try{
@@ -295,7 +285,7 @@ public class winks: Window {
 				this.url_bar.text=url;
 			 } 
 			 catch (Error e) {
-				if(DEBUG)stderr.printf ("Could not create alias file: %s\n", e.message);
+				stderr.printf ("Could not create alias file: %s\n", e.message);
 			}
 		}
 		//check alias
@@ -333,7 +323,7 @@ public class winks: Window {
 			}
 		} 
 		catch (Error e) {
-			if(DEBUG)stdout.printf ("Error: %s\n", e.message);
+			stdout.printf ("Error: %s\n", e.message);
 		}
 		return newurl;
 	}
@@ -366,7 +356,6 @@ public class winks: Window {
 		}
 
 		Gtk.main ();
-
 		return 0;
 	}
 }
