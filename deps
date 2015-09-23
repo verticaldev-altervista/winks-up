@@ -1,4 +1,4 @@
 sudo apt-get install valac
 sudo apt-get install uget
-sudo cp webkitgtk-3.0.deps /usr/share/vala-0.22/vapi
-sudo cp webkitgtk-3.0.vapi /usr/share/vala-0.22/vapi
+sudo cp webkitgtk-3.0.deps /usr/share/vala-*/vapi
+sudo cp webkitgtk-3.0.vapi /usr/share/vala-*/vapi
