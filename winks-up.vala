@@ -17,7 +17,7 @@ using Soup;
 
 public class winks: Window {
 	// constants
-	private const bool DEBUG = false;
+	private const bool DEBUG = true;
 	private const string TITLE = "winks-up";
 	private const string HOME_URL = "http://www.google.com/";
 	private const string DEFAULT_PROTOCOL = "http";
@@ -96,7 +96,7 @@ public class winks: Window {
 		connect_signals ();
 
 		// Session stuff (required for cookies)
-		this.my_session = get_default_session ();
+		this.my_session = get_default_session();
 		this.http_cookies.attach (this.my_session);
 
 		// zoom indicator
@@ -169,9 +169,11 @@ public class winks: Window {
 		this.web_view.title_changed.connect ((source, frame, title) => {
 			this.title = "%s - %s".printf (title, winks.TITLE);
 		});
+		
 		this.web_view.load_committed.connect ((source, frame) => {
 			this.url_bar.text = frame.get_uri ();
 		});
+		
 		this.web_view.new_window_policy_decision_requested.connect ((source, frame, request, action, decision) => {
 			web_view.open (request.get_uri ());
 			//GLib.Process.spawn_command_line_async ("./w-up "+request.get_uri ());
@@ -197,9 +199,9 @@ public class winks: Window {
 			(source, frame, request, action, decision) => {
 				// Find out if we have a cookie for this request
 				string found_cookie = this.http_cookies.get_cookies(request.message.get_uri(), true);
-				if (found_cookie != null) {
-					if(DEBUG)print ("Found Cookie: %s\n", found_cookie);
-					request.message.request_headers.append("Cookie", found_cookie);
+				if (found_cookie != null && found_cookie !="\r\n") {
+					if(DEBUG)print ("Found Cookie for %s: %s\n", request.get_uri (), found_cookie);
+					request.message.request_headers.append("Cookie", found_cookie+"\r\n");
 				}
 				else {
 					if(DEBUG)print ("No Cookie for: %s\n", request.get_uri ());
@@ -209,16 +211,20 @@ public class winks: Window {
 				return true;
 			}	
 		);
+		
 		this.web_view.load_started.connect ((source, frame) => {
 			this.url_bar.set_progress_fraction (0.0);
 		});
+		
 		this.web_view.load_progress_changed.connect ((source, progress) => {
 			string the_progress = ("0."+progress.to_string ()).substring(0,3);
 			this.url_bar.set_progress_fraction (the_progress.to_double ());
 		});
+		
 		this.web_view.load_finished.connect ((source, frame) => {
 			this.url_bar.set_progress_fraction (0.0);
 		});
+		
 	}
 
 	private bool on_key_pressed (Widget source, Gdk.EventKey key) {
@@ -252,12 +258,12 @@ public class winks: Window {
 		var message = new Soup.Message ("GET", url);
 		// Find out if we have a cookie for this request
 		string found_cookie = this.http_cookies.get_cookies(message.get_uri(), true);
-		if (found_cookie != null) {
-			if(DEBUG)print ("Found Cookie: %s\n", found_cookie);
-			message.request_headers.append("Cookie", found_cookie);
+		if (found_cookie != null && found_cookie !="\r\n")  {
+			if(DEBUG)print ("Found Soup Cookie for %s: %s\n", url, found_cookie);
+			message.request_headers.append("Cookie", found_cookie+"\r\n");
 		}
 		else {
-			if(DEBUG)print ("No Cookie for: %s\n", url);
+			if(DEBUG)print ("No Soup Cookie for: %s\n", url);
 		}
 		this.my_session.send_message (message);
 
