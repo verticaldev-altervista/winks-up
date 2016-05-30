@@ -1,0 +1,8 @@
+winks-up.vala:279.4-279.101: warning: unhandled error `GLib.SpawnError'
+			GLib.Process.spawn_command_line_async ("gedit "+Environment.get_home_dir ()+"/.config/w-up/alias");
+			^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+winks-up.vala:221.40-221.61: warning: string.to_double is deprecated. Use double.parse
+/media/vroby/macchine virtual/devel_linux/verticaldev/winks-up/winks-up.vala.c: In function ‘winks_load_url’:
+/media/vroby/macchine virtual/devel_linux/verticaldev/winks-up/winks-up.vala.c:1271:10: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  _tmp22_ = _tmp21_->data;
+          ^
