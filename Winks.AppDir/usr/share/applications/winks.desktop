@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Winks Browser
+Exec=winks-up
+Icon=w-up
+Type=Application
+Categories=Network;WebBrowser;
+Name[it]=winks.desktop
