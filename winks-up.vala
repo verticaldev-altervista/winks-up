@@ -28,7 +28,7 @@ public class winks: Window {
 	private Regex search_check_regex;
 
 	// variables used globally
-	private int zoom_level;
+	private double zoom_level;
 	private Session my_session;
 	private CookieJarText http_cookies;
 	private Entry url_bar;
@@ -39,7 +39,7 @@ public class winks: Window {
 	private Button exit_btn;
 
 	private WebView web_view;
-	private WebSettings web_settings;
+	private WebKit.Settings web_settings;
 	private ScrolledWindow scrolled_window;
 
 	// constructor
@@ -96,13 +96,14 @@ public class winks: Window {
 		connect_signals ();
 
 		// Session stuff (required for cookies)
-		this.my_session = get_default_session();
+		/* this.my_session = get_session();
 		this.http_cookies.attach (this.my_session);
-
+		*/
+		
 		// zoom indicator
-		this.zoom_level = 0;
+		this.zoom_level =this.web_view.get_zoom_level();
 		// zoom type
-		this.web_view.set_full_content_zoom (true);
+		//this.web_view.set_full_content_zoom (true);
 
 		// move focus onto the url bar
 		this.url_bar.grab_focus ();
@@ -137,8 +138,10 @@ public class winks: Window {
 		grid.attach(min_btn,4,1,1,1);		
 		grid.attach(exit_btn,5,1,1,1);
    		
-		this.web_settings = new WebSettings ();
+		this.web_settings = new WebKit.Settings ();
 		this.web_settings.enable_page_cache = true;
+		this.web_settings.enable_webgl = true;
+		
 		//this.web_settings.enable_plugins=true;
 		this.web_settings.user_agent = (this.web_settings.user_agent+" "+VERSION_STRING.replace(" ", "/"));
 		this.web_view = new WebView ();
@@ -158,7 +161,7 @@ public class winks: Window {
 	private void connect_signals () {
 		this.destroy.connect (Gtk.main_quit);
 		this.exit_btn.clicked.connect(Gtk.main_quit);
-		this.home_btn.clicked.connect (()=>{this.web_view.open(winks.HOME_URL);});
+		this.home_btn.clicked.connect (()=>{this.web_view.load_uri(winks.HOME_URL);});
 		this.min_btn.clicked.connect (this.iconify);
 		this.back_btn.clicked.connect (this.web_view.go_back);
 		this.forward_btn.clicked.connect (this.web_view.go_forward);
@@ -166,36 +169,36 @@ public class winks: Window {
 		this.url_bar.activate.connect (on_activate);
 
 		this.url_bar.activate.connect (on_activate);
-		this.web_view.title_changed.connect ((source, frame, title) => {
-			this.title = "%s - %s".printf (title, winks.TITLE);
+		//this.web_view.title_changed.connect ((source, frame, title) => {
+		//	this.title = "%s - %s".printf (title, winks.TITLE);
+		//});
+		
+		this.web_view.load_changed.connect ((source, frame) => {
+			this.url_bar.text = source.get_uri ();			
 		});
 		
-		this.web_view.load_committed.connect ((source, frame) => {
-			this.url_bar.text = frame.get_uri ();
-		});
-		
-		this.web_view.new_window_policy_decision_requested.connect ((source, frame, request, action, decision) => {
-			web_view.open (request.get_uri ());
+		/*this.web_view.decide_policy.connect ((policy, decision) => {
+			web_view.load_uri (web_view.get_uri ());
 			//GLib.Process.spawn_command_line_async ("./w-up "+request.get_uri ());
 			return true;
-		});
+		});*/
 
-		this.web_view.mime_type_policy_decision_requested.connect ((frame, request, mime, decision) =>{
-			if(DEBUG)print("Mime:%s\n",mime); 
-			if (mime!="text/html"){
-				try{
-					if(DEBUG)print( "Download:%s\n",request.get_uri ());
-					GLib.Process.spawn_command_line_async ("uget-gtk "+request.get_uri ());
+		this.web_view.decide_policy.connect((policy, type) => {
+			if (type == WebKit.PolicyDecisionType.NEW_WINDOW_ACTION ){	
+					WebKit.NavigationPolicyDecision nav_policy =(WebKit.NavigationPolicyDecision) policy;
+				if (nav_policy.get_navigation_type() == WebKit.NavigationType.LINK_CLICKED){
+					//if (nav_policy.request.get_http_headers.mime_type =="text/html")
+						web_view.load_uri (nav_policy.request.uri);
+					//else
+					//	GLib.Process.spawn_command_line_async ("uget-gtk "+nav_policy.request.uri);
 				}
-				catch (Error e) {
-					if(DEBUG)stderr.printf ("Error to run download script: %s\n", e.message);
-				}
-				return false;
 			}
 			return true;
 		});
+
+
 		
-		this.web_view.navigation_policy_decision_requested.connect (
+		/* this.web_view.navigation_policy_decision_requested.connect (
 			(source, frame, request, action, decision) => {
 				// Find out if we have a cookie for this request
 				string found_cookie = this.http_cookies.get_cookies(request.message.get_uri(), true);
@@ -210,20 +213,20 @@ public class winks: Window {
 				decision.use ();
 				return true;
 			}	
-		);
+		);*/
 		
-		this.web_view.load_started.connect ((source, frame) => {
+		this.web_view.resource_load_started.connect ((source, frame) => {
 			this.url_bar.set_progress_fraction (0.0);
 		});
 		
-		this.web_view.load_progress_changed.connect ((source, progress) => {
+		/*this.web_view.resource_load_progress_changed.connect ((source, progress) => {
 			string the_progress = ("0."+progress.to_string ()).substring(0,3);
 			this.url_bar.set_progress_fraction (the_progress.to_double ());
-		});
+		});*/
 		
-		this.web_view.load_finished.connect ((source, frame) => {
+		/*this.web_view.load_finished.connect ((source, frame) => {
 			this.url_bar.set_progress_fraction (0.0);
-		});
+		});*/
 		
 	}
 
@@ -233,19 +236,18 @@ public class winks: Window {
 			this.url_bar.text = "";
 			this.url_bar.grab_focus ();
 			this.web_view.zoom_level = 1;
-			this.web_view.set_full_content_zoom (true);
+			this.web_view.set_zoom_level(this.web_view.zoom_level);
+
 			return true;
 		}
 
 		if ((key.state & 4)!=0 ) {
 			if (key.str == "+") {
-				this.web_view.set_full_content_zoom (true);
-				this.web_view.zoom_in();
+				this.web_view.set_zoom_level(this.web_view.get_zoom_level()+0.1);
 				return true;
 			}
 			if (key.str == "-") {
-				this.web_view.set_full_content_zoom (true);
-				this.web_view.zoom_out();
+				this.web_view.set_zoom_level(this.web_view.get_zoom_level()-0.1);
 				return true;
 			}
 		}
@@ -268,8 +270,8 @@ public class winks: Window {
 		this.my_session.send_message (message);
 
 		// now open the url
-		this.web_view.load_html_string ((string)message.response_body.data, url);
-		this.web_view.open (url);
+		//this.web_view.load_html_string ((string)message.response_body.data, url);
+		this.web_view.load_uri (url);
 	}
 
 	// deal with someone activating the url/command bar
