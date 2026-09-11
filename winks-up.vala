@@ -31,6 +31,7 @@ public class Winks : Window {
     private ScrolledWindow scrolled_window;
     private Label zoom_label;
     private ProgressBar progress_bar;
+    private CookieManager cookie_manager;
 
     public Winks() {
         this.title = TITLE;
@@ -178,6 +179,18 @@ public class Winks : Window {
         // Ctrl+scroll for zoom
         web_view.scroll_event.connect(on_scroll);
 
+        // Downloads
+        web_view.get_context().download_started.connect(on_download_started);
+
+        // Cookies — persistent SQLite storage
+        this.cookie_manager = web_view.get_context().get_cookie_manager();
+        var config_dir = Path.build_filename(Environment.get_user_config_dir(), "winks-up");
+        DirUtils.create_with_parents(config_dir, 0755);
+        cookie_manager.set_persistent_storage(
+            Path.build_filename(config_dir, "cookies.db"),
+            CookiePersistentStorage.SQLITE
+        );
+
         // Initialize button states
         back_btn.set_sensitive(false);
         forward_btn.set_sensitive(false);
@@ -267,6 +280,13 @@ public class Winks : Window {
             return true;
         }
 
+        if (key.keyval == Gdk.Key.Delete
+            && (key.state & Gdk.ModifierType.CONTROL_MASK) != 0
+            && (key.state & Gdk.ModifierType.SHIFT_MASK) != 0) {
+            clear_cookies();
+            return true;
+        }
+
         if (key.keyval == Gdk.Key.F11) {
             var gdk_win = this.get_window();
             if (gdk_win != null && (gdk_win.get_state() & Gdk.WindowState.FULLSCREEN) != 0)
@@ -319,12 +339,79 @@ public class Winks : Window {
             var nav_decision = decision as NavigationPolicyDecision;
             if (nav_decision != null) {
                 var nav_action = nav_decision.get_navigation_action();
-                web_view.load_uri(nav_action.get_request().uri);
+                string uri = nav_action.get_request().uri;
                 decision.ignore();
+                // Defer load so WebKit properly records back-forward history
+                Idle.add(() => {
+                    web_view.load_uri(uri);
+                    return false;
+                });
                 return true;
+            }
+        } else if (type == PolicyDecisionType.RESPONSE) {
+            var response_decision = decision as ResponsePolicyDecision;
+            if (response_decision != null) {
+                var response = response_decision.get_response();
+                if (response != null) {
+                    var mime_type = response.get_mime_type();
+                    if (mime_type != null && !web_view.can_show_mime_type(mime_type)) {
+                        response_decision.download();
+                        return true;
+                    }
+                }
             }
         }
         return false;
+    }
+
+    private void on_download_started(Download download) {
+        download.decide_destination.connect((suggested_filename) => {
+            var file_chooser = new FileChooserDialog(
+                "Save File", this, FileChooserAction.SAVE,
+                "_Cancel", ResponseType.CANCEL,
+                "_Save", ResponseType.ACCEPT
+            );
+            file_chooser.set_do_overwrite_confirmation(true);
+
+            string name = (suggested_filename != null && suggested_filename != "")
+                ? suggested_filename
+                : extract_filename_from_uri(download.get_request().uri);
+            file_chooser.set_current_name(name);
+
+            if (file_chooser.run() == ResponseType.ACCEPT) {
+                try {
+                    download.set_destination(Filename.to_uri(file_chooser.get_filename(), null));
+                } catch (Error e) {
+                    stderr.printf("Error setting download destination: %s\n", e.message);
+                }
+            }
+            file_chooser.destroy();
+            return true;
+        });
+
+        download.failed.connect((error) => {
+            stderr.printf("Download failed: %s\n", error.message);
+        });
+    }
+
+    private string extract_filename_from_uri(string uri) {
+        var last_slash = uri.last_index_of("/");
+        if (last_slash >= 0 && last_slash < uri.length - 1) {
+            var name = uri.substring(last_slash + 1);
+            return Uri.unescape_string(name) ?? name;
+        }
+        return "download";
+    }
+
+    private void clear_cookies() {
+        var data_manager = web_view.get_context().get_website_data_manager();
+        data_manager.clear.begin(WebsiteDataTypes.COOKIES, 0, null, (obj, res) => {
+            try {
+                data_manager.clear.end(res);
+            } catch (Error e) {
+                stderr.printf("Error clearing cookies: %s\n", e.message);
+            }
+        });
     }
 
     private bool on_context_menu(ContextMenu context_menu, Gdk.Event event, HitTestResult hit_test) {
@@ -341,6 +428,12 @@ public class Winks : Window {
             });
             menu.append(copy_link);
 
+            var save_link = new Gtk.MenuItem.with_label("Save Link As…");
+            save_link.activate.connect(() => {
+                web_view.get_context().download_uri(hit_test.link_uri);
+            });
+            menu.append(save_link);
+
             menu.append(new SeparatorMenuItem());
         }
 
@@ -350,6 +443,13 @@ public class Winks : Window {
                 Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(hit_test.image_uri, -1);
             });
             menu.append(copy_img);
+
+            var save_img = new Gtk.MenuItem.with_label("Save Image As…");
+            save_img.activate.connect(() => {
+                web_view.get_context().download_uri(hit_test.image_uri);
+            });
+            menu.append(save_img);
+
             menu.append(new SeparatorMenuItem());
         }
 
